@@ -1,0 +1,26 @@
+{
+  "name": "Recordatorio de Medicamentos",
+  "short_name": "MediTrack",
+  "description": "Aplicación para recordar la toma de medicamentos",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "permissions": [
+    "alarms",
+    "notifications",
+    "storage"
+  ],
+  "icons": [
+    {
+      "src": "/imagenes/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/imagenes/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

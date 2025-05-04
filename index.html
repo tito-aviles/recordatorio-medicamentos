@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recordatorio de Medicamentos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4a90e2">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./imagenes/icon.png">
+    <link rel="apple-touch-icon" href="/imagenes/icon.png">
+</head>
+<body>
+    <div class="container">
+        <h1>Recordatorio de Medicamentos</h1>
+        
+        <button id="prueba-notificacion" class="btn-prueba">
+            Probar Notificación
+        </button>
+
+        <button id="compartir-whatsapp" class="btn-whatsapp">
+            <i class="icon-whatsapp"></i> Compartir por WhatsApp
+        </button>
+        
+        <form id="med-form" class="med-form">
+            <div class="form-group">
+                <label for="nombre">Nombre del Medicamento</label>
+                <input type="text" id="nombre" required placeholder="Ej: Paracetamol">
+            </div>
+            
+            <div class="form-group">
+                <label for="dosis">Dosis</label>
+                <input type="text" id="dosis" required placeholder="Ej: 500mg">
+            </div>
+            
+            <div class="form-group">
+                <label for="intervalo">Intervalo (minutos)</label>
+                <input type="number" id="intervalo" required min="1" placeholder="Ej: 60">
+            </div>
+            
+            <button type="submit">Agregar Medicamento</button>
+        </form>
+
+        <div id="lista-medicamentos"></div>
+        
+        <button id="borrar-todo">Eliminar Todos los Medicamentos</button>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="sw.js"></script>
+</body>
+</html>
