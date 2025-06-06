@@ -10,7 +10,7 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
         new Notification("Recordatorio", { body: mensaje });
     }
     // Sonido de alarma fuerte y repetitivo
-    const alarmaAudio = new Audio("https://cdn.pixabay.com/audio/2022/08/20/audio_12c9b5b2b2.mp3");
+    const alarmaAudio = new Audio("https://upload.wikimedia.org/wikipedia/commons/4/4e/Alarm_Clock_Buzzer.ogg");
     alarmaAudio.loop = true; // Que se repita hasta que el usuario la detenga
     alarmaAudio.play();
 
