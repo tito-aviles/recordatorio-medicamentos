@@ -5,16 +5,16 @@ if ("Notification" in window && Notification.permission !== "granted") {
 
 // === Función para activar alarma (notificación + sonido) ===
 function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
-    // Notificación visual
     if ("Notification" in window && Notification.permission === "granted") {
         new Notification("Recordatorio", { body: mensaje });
     }
-    // Sonido de alarma fuerte y repetitivo
-    const alarmaAudio = new Audio("https://upload.wikimedia.org/wikipedia/commons/4/4e/Alarm_Clock_Buzzer.ogg");
-    alarmaAudio.loop = true; // Que se repita hasta que el usuario la detenga
-    alarmaAudio.play();
+    // Sonido de teléfono antiguo
+    const alarmaAudio = new Audio("https://upload.wikimedia.org/wikipedia/commons/6/6e/Telephone_Ring_1950s_UK.ogg");
+    alarmaAudio.loop = true;
+    alarmaAudio.play().catch(err => {
+        alert("No se pudo reproducir el sonido de la alarma. Asegúrate de que tu teléfono no esté en silencio y que el navegador permita reproducir audio.");
+    });
 
-    // Botón para detener la alarma
     let detener = document.createElement("button");
     detener.textContent = "Detener alarma";
     detener.style = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:20px 30px;background:#d32f2f;color:white;font-size:1.2em;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);";
