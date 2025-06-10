@@ -47,4 +47,4 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 
 ## Autor
 
-[Gerardo López](https://github.com/tito-aviles) 
+[Gerardo López (Tito Avilés)(https://github.com/tito-aviles) 
