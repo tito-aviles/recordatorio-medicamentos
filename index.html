@@ -2,33 +2,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Recordatorio de Medicamentos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#3f51b5">
+    <title>MediTrack - Recordatorio de Medicamentos</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div class="container">
-        <h1>Recordatorio de Medicamentos</h1>
-        <!-- Formulario para agregar recordatorio -->
-        <form id="form-recordatorio">
-            <div class="form-group">
-                <label for="medicamento">Medicamento</label>
-                <input type="text" id="medicamento" required>
-            </div>
-            <div class="form-group">
-                <label for="hora">Hora (HH:MM)</label>
-                <input type="time" id="hora" required>
-            </div>
-            <button type="submit" class="submit-btn">Agregar recordatorio</button>
-        </form>
+        <header>
+            <h1><i class="fas fa-pills"></i> MediTrack</h1>
+            <p class="subtitle">Gestión profesional de medicamentos</p>
+        </header>
 
-        <!-- Lista de recordatorios -->
-        <h2>Mis recordatorios</h2>
-        <ul id="lista-recordatorios"></ul>
+        <section class="card">
+            <h2><i class="fas fa-plus-circle"></i> Nuevo Recordatorio</h2>
+            <form id="form-recordatorio">
+                <div class="form-group">
+                    <label for="medicamento"><i class="fas fa-capsules"></i> Medicamento</label>
+                    <input type="text" id="medicamento" placeholder="Ej: Paracetamol 500mg" required>
+                </div>
+                <div class="form-group">
+                    <label for="hora"><i class="far fa-clock"></i> Hora</label>
+                    <input type="time" id="hora" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </form>
+        </section>
 
-        <!-- Botón para probar la alarma manualmente -->
-        <button id="btn-activar-alarma">Probar alarma</button>
+        <section class="card">
+            <h2><i class="fas fa-bell"></i> Mis Recordatorios</h2>
+            <ul id="lista-recordatorios" class="recordatorio-list"></ul>
+        </section>
+
+        <div class="actions">
+            <button id="btn-activar-alarma" class="btn btn-danger">
+                <i class="fas fa-bell"></i> Probar Alarma
+            </button>
+        </div>
     </div>
+
     <script src="main.js"></script>
 </body>
 </html>
