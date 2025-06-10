@@ -1,129 +1,184 @@
-// === Permiso de notificación al cargar la página ===
+// Configuración inicial
 if ("Notification" in window && Notification.permission !== "granted") {
-    Notification.requestPermission();
+    Notification.requestPermission().then(permission => {
+        console.log("Permiso de notificación:", permission);
+    });
 }
 
-// === Función para activar alarma (notificación + sonido) ===
+// Manejo de audio en móviles
+document.addEventListener('click', () => {
+    if (typeof AudioContext !== 'undefined') {
+        new AudioContext().resume();
+    }
+}, { once: true });
+
+// Ajustes para móviles
+function adjustForMobile() {
+    if (window.innerWidth <= 640) {
+        document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top, 0px)');
+        document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom, 0px)');
+    }
+}
+
+window.addEventListener('load', adjustForMobile);
+window.addEventListener('resize', adjustForMobile);
+
+// Función de alarma
 function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
-    // Notificación visual
+    // Notificación
     if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("Recordatorio", { body: mensaje });
+        new Notification("MediTrack - Recordatorio", { 
+            body: mensaje,
+            vibrate: [200, 100, 200]
+        });
     }
 
-    // Sonido de teléfono antiguo (ogg + fallback a mp3)
-    const alarmaAudio = document.createElement("audio");
-    alarmaAudio.loop = true;
+    let audioElement;
 
-    // Intenta primero con .ogg (más calidad, menos compatibilidad)
-    alarmaAudio.src = "https://upload.wikimedia.org/wikipedia/commons/6/6e/Telephone_Ring_1950s_UK.ogg";
-    alarmaAudio.type = "audio/ogg";
+    const playAudio = () => {
+        audioElement = new Audio('./sonidos/ascent.mp3');
+        audioElement.loop = true;
 
-    // Si falla el ogg, prueba con mp3
-    alarmaAudio.onerror = function() {
-        alarmaAudio.src = "https://cdn.pixabay.com/audio/2022/03/15/audio_119bfae372.mp3"; // Sonido de timbre de teléfono similar
-        alarmaAudio.type = "audio/mp3";
-        alarmaAudio.play().catch(() => {
-            alert("No se pudo reproducir el sonido de la alarma. Asegúrate de que tu teléfono no esté en silencio y que el navegador permita reproducir audio.");
+        audioElement.play().catch(async (e) => {
+            console.error("Error con audio:", e);
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 800;
+                gainNode.gain.value = 0.3;
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                oscillator.start();
+                audioElement = { stop: () => oscillator.stop() };
+            } catch (error) {
+                console.error("Error con Web Audio API:", error);
+            }
         });
     };
 
-    // Intenta reproducir el sonido
-    alarmaAudio.play().catch(() => {
-        alert("No se pudo reproducir el sonido de la alarma. Asegúrate de que tu teléfono no esté en silencio y que el navegador permita reproducir audio.");
-    });
+    if (document.body.hasAttribute('data-audio-enabled')) {
+        playAudio();
+    } else {
+        const enableBtn = document.createElement('button');
+        enableBtn.innerHTML = '<i class="fas fa-volume-up"></i> ACTIVAR SONIDOS';
+        enableBtn.className = 'enable-sound-btn';
+        enableBtn.onclick = () => {
+            document.body.setAttribute('data-audio-enabled', 'true');
+            enableBtn.remove();
+            playAudio();
+        };
+        document.body.appendChild(enableBtn);
+    }
 
-    // Botón para detener la alarma
-    let detener = document.createElement("button");
-    detener.textContent = "Detener alarma";
-    detener.style = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:20px 30px;background:#d32f2f;color:white;font-size:1.2em;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);";
-    detener.onclick = () => {
-        alarmaAudio.pause();
-        alarmaAudio.currentTime = 0;
-        detener.remove();
+    const alarmPanel = document.createElement('div');
+    alarmPanel.className = 'alarm-panel';
+    alarmPanel.innerHTML = `
+        <div class="alarm-content">
+            <p><i class="fas fa-bell"></i> ${mensaje}</p>
+            <div class="alarm-actions">
+                <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
+                <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(alarmPanel);
+
+    const stopAlarm = () => {
+        if (audioElement) {
+            if (typeof audioElement.pause === 'function') {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            } else if (typeof audioElement.stop === 'function') {
+                audioElement.stop();
+            }
+        }
+        alarmPanel.remove();
     };
-    document.body.appendChild(detener);
+
+    document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
+    document.getElementById('snooze-alarm').addEventListener('click', () => {
+        stopAlarm();
+        setTimeout(() => activarAlarma(mensaje), 300000);
+    });
 }
 
-// === Botón manual de prueba de alarma ===
-const btnAlarma = document.getElementById("btn-activar-alarma");
-if (btnAlarma) {
-    btnAlarma.addEventListener("click", () => activarAlarma());
-}
-
-// === Lógica para recordatorios ===
+// Gestión de recordatorios
 const listaRecordatorios = document.getElementById("lista-recordatorios");
 const formRecordatorio = document.getElementById("form-recordatorio");
-let recordatorios = [];
+let recordatorios = JSON.parse(localStorage.getItem("recordatorios")) || [];
 
-// Cargar recordatorios de localStorage si existen
-function cargarRecordatorios() {
-    const guardados = localStorage.getItem("recordatorios");
-    if (guardados) {
-        recordatorios = JSON.parse(guardados);
-    }
-}
-
-// Guardar recordatorios en localStorage
-function guardarRecordatorios() {
-    localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
-}
-
-// Mostrar recordatorios en la lista
 function mostrarRecordatorios() {
-    listaRecordatorios.innerHTML = "";
-    recordatorios.forEach((rec, idx) => {
-        const li = document.createElement("li");
-        li.className = "recordatorio-item";
-        li.innerHTML = `
-            <span>💊 ${rec.medicamento}</span>
-            <span>⏰ ${rec.hora}</span>
-            <button class="eliminar-btn" title="Eliminar" data-idx="${idx}">🗑</button>
-        `;
-        listaRecordatorios.appendChild(li);
+    listaRecordatorios.innerHTML = recordatorios.map((rec, idx) => `
+        <li class="recordatorio-item">
+            <div class="medicamento">
+                <i class="fas fa-pills"></i>
+                <span>${rec.medicamento}</span>
+            </div>
+            <div class="hora">
+                <i class="far fa-clock"></i>
+                <span>${rec.hora}</span>
+            </div>
+            <button class="eliminar-btn" data-idx="${idx}">
+                <i class="fas fa-trash"></i>
+            </button>
+        </li>
+    `).join('');
+}
+
+function programarAlarmas() {
+    recordatorios.forEach(rec => {
+        const ahora = new Date();
+        const [horas, minutos] = rec.hora.split(':').map(Number);
+        const horaAlarma = new Date(
+            ahora.getFullYear(),
+            ahora.getMonth(),
+            ahora.getDate(),
+            horas,
+            minutos
+        );
+
+        let msRestantes = horaAlarma - ahora;
+        if (msRestantes < 0) msRestantes += 86400000;
+
+        setTimeout(() => activarAlarma(`¡Toma tu ${rec.medicamento}!`), msRestantes);
     });
 }
 
-// Eliminar recordatorio
-listaRecordatorios.addEventListener("click", function(e) {
-    if (e.target.classList.contains("eliminar-btn")) {
-        const idx = parseInt(e.target.getAttribute("data-idx"));
+// Eventos
+formRecordatorio.addEventListener('submit', e => {
+    e.preventDefault();
+    const medicamento = document.getElementById("medicamento").value.trim();
+    const hora = document.getElementById("hora").value;
+
+    if (medicamento && hora) {
+        recordatorios.push({ medicamento, hora });
+        localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
+        mostrarRecordatorios();
+        programarAlarmas();
+        formRecordatorio.reset();
+    }
+});
+
+listaRecordatorios.addEventListener('click', e => {
+    if (e.target.closest('.eliminar-btn')) {
+        const idx = e.target.closest('.eliminar-btn').dataset.idx;
         recordatorios.splice(idx, 1);
-        guardarRecordatorios();
+        localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
         mostrarRecordatorios();
     }
 });
 
-// Programar alarma para cada recordatorio
-function programarAlarmas() {
-    recordatorios.forEach(rec => {
-        programarAlarmaParaMedicamento(rec.hora, `¡Toma tu medicamento: ${rec.medicamento}!`);
-    });
-}
-
-// Función para programar una alarma a una hora específica (formato "HH:MM")
-function programarAlarmaParaMedicamento(hora, mensaje) {
-    const ahora = new Date();
-    const [h, m] = hora.split(':').map(Number);
-    const objetivo = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), h, m, 0, 0);
-    let msParaAlarma = objetivo - ahora;
-    if (msParaAlarma < 0) msParaAlarma += 24 * 60 * 60 * 1000; // Si ya pasó hoy, programa para mañana
-    setTimeout(() => activarAlarma(mensaje), msParaAlarma);
-}
-
-// Manejo del envío del formulario
-formRecordatorio.addEventListener("submit", function(e) {
-    e.preventDefault();
-    const medicamento = document.getElementById("medicamento").value.trim();
-    const hora = document.getElementById("hora").value;
-    if (!medicamento || !hora) return;
-    recordatorios.push({ medicamento, hora });
-    guardarRecordatorios();
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
     mostrarRecordatorios();
     programarAlarmas();
-    formRecordatorio.reset();
-});
 
-// Inicialización al cargar
-cargarRecordatorios();
-mostrarRecordatorios();
-programarAlarmas();
+    document.getElementById('btn-activar-alarma')?.addEventListener('click', () => {
+        activarAlarma("¡Esta es una prueba de la alarma!");
+    });
+});
