@@ -60,7 +60,7 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
     asegurarAudioHabilitado(() => {
         let audioElement;
         const playAudio = () => {
-            audioElement = new Audio('./sonidos/ascent.mp3');
+            audioElement = new Audio('ascent.mp3');
             audioElement.loop = true;
 
             audioElement.play().catch(async (e) => {
