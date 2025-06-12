@@ -23,6 +23,30 @@ function adjustForMobile() {
 window.addEventListener('load', adjustForMobile);
 window.addEventListener('resize', adjustForMobile);
 
+// Muestra el botón de activar sonidos si hace falta y ejecuta el callback tras activarlo
+function asegurarAudioHabilitado(callback) {
+    if (document.body.hasAttribute('data-audio-enabled')) {
+        callback();
+        return;
+    }
+    let enableBtn = document.querySelector('.enable-sound-btn');
+    if (!enableBtn) {
+        enableBtn = document.createElement('button');
+        enableBtn.innerHTML = '<i class="fas fa-volume-up"></i> ACTIVAR SONIDOS';
+        enableBtn.className = 'enable-sound-btn';
+        enableBtn.onclick = () => {
+            document.body.setAttribute('data-audio-enabled', 'true');
+            enableBtn.remove();
+            callback();
+        };
+        document.body.appendChild(enableBtn);
+        // Mensaje para el usuario móvil
+        setTimeout(() => {
+            alert('Para escuchar la alarma en tu teléfono, pulsa "ACTIVAR SONIDOS" primero. Solo necesitas hacerlo una vez.');
+        }, 300);
+    }
+}
+
 // Función de alarma
 function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
     // Notificación
@@ -33,74 +57,62 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
         });
     }
 
-    let audioElement;
+    asegurarAudioHabilitado(() => {
+        let audioElement;
+        const playAudio = () => {
+            audioElement = new Audio('./sonidos/ascent.mp3');
+            audioElement.loop = true;
 
-    const playAudio = () => {
-        audioElement = new Audio('./sonidos/ascent.mp3');
-        audioElement.loop = true;
-
-        audioElement.play().catch(async (e) => {
-            console.error("Error con audio:", e);
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = ctx.createOscillator();
-                const gainNode = ctx.createGain();
-                oscillator.type = 'sine';
-                oscillator.frequency.value = 800;
-                gainNode.gain.value = 0.3;
-                oscillator.connect(gainNode);
-                gainNode.connect(ctx.destination);
-                oscillator.start();
-                audioElement = { stop: () => oscillator.stop() };
-            } catch (error) {
-                console.error("Error con Web Audio API:", error);
-            }
-        });
-    };
-
-    if (document.body.hasAttribute('data-audio-enabled')) {
-        playAudio();
-    } else {
-        const enableBtn = document.createElement('button');
-        enableBtn.innerHTML = '<i class="fas fa-volume-up"></i> ACTIVAR SONIDOS';
-        enableBtn.className = 'enable-sound-btn';
-        enableBtn.onclick = () => {
-            document.body.setAttribute('data-audio-enabled', 'true');
-            enableBtn.remove();
-            playAudio();
+            audioElement.play().catch(async (e) => {
+                console.error("Error con audio:", e);
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.value = 0.3;
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    oscillator.start();
+                    audioElement = { stop: () => oscillator.stop() };
+                } catch (error) {
+                    console.error("Error con Web Audio API:", error);
+                }
+            });
         };
-        document.body.appendChild(enableBtn);
-    }
+        playAudio();
 
-    const alarmPanel = document.createElement('div');
-    alarmPanel.className = 'alarm-panel';
-    alarmPanel.innerHTML = `
-        <div class="alarm-content">
-            <p><i class="fas fa-bell"></i> ${mensaje}</p>
-            <div class="alarm-actions">
-                <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
-                <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
+        const alarmPanel = document.createElement('div');
+        alarmPanel.className = 'alarm-panel';
+        alarmPanel.innerHTML = `
+            <div class="alarm-content">
+                <p><i class="fas fa-bell"></i> ${mensaje}</p>
+                <div class="alarm-actions">
+                    <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
+                    <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
+                </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(alarmPanel);
+        `;
+        document.body.appendChild(alarmPanel);
 
-    const stopAlarm = () => {
-        if (audioElement) {
-            if (typeof audioElement.pause === 'function') {
-                audioElement.pause();
-                audioElement.currentTime = 0;
-            } else if (typeof audioElement.stop === 'function') {
-                audioElement.stop();
+        const stopAlarm = () => {
+            if (audioElement) {
+                if (typeof audioElement.pause === 'function') {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                } else if (typeof audioElement.stop === 'function') {
+                    audioElement.stop();
+                }
             }
-        }
-        alarmPanel.remove();
-    };
+            alarmPanel.remove();
+        };
 
-    document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
-    document.getElementById('snooze-alarm').addEventListener('click', () => {
-        stopAlarm();
-        setTimeout(() => activarAlarma(mensaje), 300000);
+        document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
+        document.getElementById('snooze-alarm').addEventListener('click', () => {
+            stopAlarm();
+            setTimeout(() => activarAlarma(mensaje), 300000);
+        });
     });
 }
 
