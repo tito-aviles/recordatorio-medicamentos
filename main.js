@@ -1,16 +1,25 @@
-// Configuración inicial
+// Permiso de notificación
 if ("Notification" in window && Notification.permission !== "granted") {
     Notification.requestPermission().then(permission => {
         console.log("Permiso de notificación:", permission);
     });
 }
 
-// Manejo de audio en móviles: primer toque para desbloquear audio
-document.addEventListener('click', () => {
-    if (typeof AudioContext !== 'undefined') {
-        new AudioContext().resume();
-    }
-}, { once: true });
+// Manejo de audio en móviles: desbloquear audio con interacción real
+let audioHabilitado = false;
+const btnEnableSound = document.getElementById('btn-enable-sound');
+btnEnableSound.addEventListener('click', function() {
+    const audio = new Audio('./sonidos/ascent.mp3');
+    audio.play().then(() => {
+        audioHabilitado = true;
+        document.body.setAttribute('data-audio-enabled', 'true');
+        btnEnableSound.remove();
+        alert('¡Sonido activado! Ahora las alarmas sonarán.');
+    }).catch((e) => {
+        alert('No se pudo activar el sonido. Intenta de nuevo.');
+        console.error(e);
+    });
+});
 
 // Ajustes para móviles (safe-area)
 function adjustForMobile() {
@@ -19,37 +28,11 @@ function adjustForMobile() {
         document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom, 0px)');
     }
 }
-
 window.addEventListener('load', adjustForMobile);
 window.addEventListener('resize', adjustForMobile);
 
-// Muestra el botón de activar sonidos si hace falta y ejecuta el callback tras activarlo
-function asegurarAudioHabilitado(callback) {
-    if (document.body.hasAttribute('data-audio-enabled')) {
-        callback();
-        return;
-    }
-    let enableBtn = document.querySelector('.enable-sound-btn');
-    if (!enableBtn) {
-        enableBtn = document.createElement('button');
-        enableBtn.innerHTML = '<i class="fas fa-volume-up"></i> ACTIVAR SONIDOS';
-        enableBtn.className = 'enable-sound-btn';
-        enableBtn.onclick = () => {
-            document.body.setAttribute('data-audio-enabled', 'true');
-            enableBtn.remove();
-            callback();
-        };
-        document.body.appendChild(enableBtn);
-        // Mensaje para el usuario móvil
-        setTimeout(() => {
-            alert('Para escuchar la alarma en tu teléfono, pulsa "ACTIVAR SONIDOS" primero. Solo necesitas hacerlo una vez.');
-        }, 300);
-    }
-}
-
-// Función de alarma
+// Función de alarma: solo suena si audioHabilitado = true y el usuario ya tocó el botón
 function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
-    // Notificación
     if ("Notification" in window && Notification.permission === "granted") {
         new Notification("MediTrack - Recordatorio", { 
             body: mensaje,
@@ -57,62 +40,60 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
         });
     }
 
-    asegurarAudioHabilitado(() => {
-        let audioElement;
-        const playAudio = () => {
-            audioElement = new Audio('ascent.mp3');
-            audioElement.loop = true;
+    if (!audioHabilitado) {
+        alert('Debes pulsar "ACTIVAR SONIDOS" antes para escuchar la alarma.');
+        return;
+    }
 
-            audioElement.play().catch(async (e) => {
-                console.error("Error con audio:", e);
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = ctx.createOscillator();
-                    const gainNode = ctx.createGain();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.value = 800;
-                    gainNode.gain.value = 0.3;
-                    oscillator.connect(gainNode);
-                    gainNode.connect(ctx.destination);
-                    oscillator.start();
-                    audioElement = { stop: () => oscillator.stop() };
-                } catch (error) {
-                    console.error("Error con Web Audio API:", error);
-                }
-            });
-        };
-        playAudio();
+    let audioElement = new Audio('./sonidos/ascent.mp3');
+    audioElement.loop = true;
+    audioElement.play().catch(e => {
+        // fallback beep
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800;
+            gainNode.gain.value = 0.3;
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.start();
+            audioElement = { stop: () => oscillator.stop() };
+        } catch (error) {
+            console.error("Error con Web Audio API:", error);
+        }
+    });
 
-        const alarmPanel = document.createElement('div');
-        alarmPanel.className = 'alarm-panel';
-        alarmPanel.innerHTML = `
-            <div class="alarm-content">
-                <p><i class="fas fa-bell"></i> ${mensaje}</p>
-                <div class="alarm-actions">
-                    <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
-                    <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
-                </div>
+    const alarmPanel = document.createElement('div');
+    alarmPanel.className = 'alarm-panel';
+    alarmPanel.innerHTML = `
+        <div class="alarm-content">
+            <p><i class="fas fa-bell"></i> ${mensaje}</p>
+            <div class="alarm-actions">
+                <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
+                <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
             </div>
-        `;
-        document.body.appendChild(alarmPanel);
+        </div>
+    `;
+    document.body.appendChild(alarmPanel);
 
-        const stopAlarm = () => {
-            if (audioElement) {
-                if (typeof audioElement.pause === 'function') {
-                    audioElement.pause();
-                    audioElement.currentTime = 0;
-                } else if (typeof audioElement.stop === 'function') {
-                    audioElement.stop();
-                }
+    const stopAlarm = () => {
+        if (audioElement) {
+            if (typeof audioElement.pause === 'function') {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            } else if (typeof audioElement.stop === 'function') {
+                audioElement.stop();
             }
-            alarmPanel.remove();
-        };
+        }
+        alarmPanel.remove();
+    };
 
-        document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
-        document.getElementById('snooze-alarm').addEventListener('click', () => {
-            stopAlarm();
-            setTimeout(() => activarAlarma(mensaje), 300000);
-        });
+    document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
+    document.getElementById('snooze-alarm').addEventListener('click', () => {
+        stopAlarm();
+        setTimeout(() => activarAlarma(mensaje), 300000);
     });
 }
 
@@ -120,8 +101,6 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
 const listaRecordatorios = document.getElementById("lista-recordatorios");
 const formRecordatorio = document.getElementById("form-recordatorio");
 let recordatorios = JSON.parse(localStorage.getItem("recordatorios")) || [];
-
-// Manejo global de alarmas programadas
 let alarmTimeouts = [];
 function limpiarAlarmas() {
     alarmTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
@@ -189,11 +168,16 @@ listaRecordatorios.addEventListener('click', e => {
     }
 });
 
+document.getElementById('btn-activar-alarma').addEventListener('click', () => {
+    if(audioHabilitado) {
+        activarAlarma("¡Esta es una prueba de la alarma!");
+    } else {
+        alert("Primero pulsa ACTIVAR SONIDOS para que la alarma funcione.");
+    }
+});
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
     mostrarRecordatorios();
     programarAlarmas();
-    document.getElementById('btn-activar-alarma')?.addEventListener('click', () => {
-        activarAlarma("¡Esta es una prueba de la alarma!");
-    });
 });
