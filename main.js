@@ -5,14 +5,14 @@ if ("Notification" in window && Notification.permission !== "granted") {
     });
 }
 
-// Manejo de audio en móviles
+// Manejo de audio en móviles: primer toque para desbloquear audio
 document.addEventListener('click', () => {
     if (typeof AudioContext !== 'undefined') {
         new AudioContext().resume();
     }
 }, { once: true });
 
-// Ajustes para móviles
+// Ajustes para móviles (safe-area)
 function adjustForMobile() {
     if (window.innerWidth <= 640) {
         document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top, 0px)');
@@ -45,14 +45,11 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = ctx.createOscillator();
                 const gainNode = ctx.createGain();
-                
                 oscillator.type = 'sine';
                 oscillator.frequency.value = 800;
                 gainNode.gain.value = 0.3;
-                
                 oscillator.connect(gainNode);
                 gainNode.connect(ctx.destination);
-                
                 oscillator.start();
                 audioElement = { stop: () => oscillator.stop() };
             } catch (error) {
@@ -112,10 +109,8 @@ const listaRecordatorios = document.getElementById("lista-recordatorios");
 const formRecordatorio = document.getElementById("form-recordatorio");
 let recordatorios = JSON.parse(localStorage.getItem("recordatorios")) || [];
 
-// NUEVO: Array para almacenar los IDs de los timeouts de las alarmas
+// Manejo global de alarmas programadas
 let alarmTimeouts = [];
-
-// NUEVO: Función para limpiar los timeouts existentes antes de programar nuevas alarmas
 function limpiarAlarmas() {
     alarmTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
     alarmTimeouts = [];
@@ -140,9 +135,7 @@ function mostrarRecordatorios() {
 }
 
 function programarAlarmas() {
-    // Limpiar alarmas antes de programar nuevas
     limpiarAlarmas();
-
     recordatorios.forEach(rec => {
         const ahora = new Date();
         const [horas, minutos] = rec.hora.split(':').map(Number);
@@ -153,11 +146,8 @@ function programarAlarmas() {
             horas,
             minutos
         );
-
         let msRestantes = horaAlarma - ahora;
         if (msRestantes < 0) msRestantes += 86400000;
-
-        // Guardar el ID del timeout para poder limpiarlo después si es necesario
         const timeoutId = setTimeout(() => activarAlarma(`¡Toma tu ${rec.medicamento}!`), msRestantes);
         alarmTimeouts.push(timeoutId);
     });
@@ -168,7 +158,6 @@ formRecordatorio.addEventListener('submit', e => {
     e.preventDefault();
     const medicamento = document.getElementById("medicamento").value.trim();
     const hora = document.getElementById("hora").value;
-
     if (medicamento && hora) {
         recordatorios.push({ medicamento, hora });
         localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
@@ -184,7 +173,7 @@ listaRecordatorios.addEventListener('click', e => {
         recordatorios.splice(idx, 1);
         localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
         mostrarRecordatorios();
-        programarAlarmas(); // Reprogramar alarmas tras eliminar
+        programarAlarmas();
     }
 });
 
@@ -192,7 +181,6 @@ listaRecordatorios.addEventListener('click', e => {
 document.addEventListener('DOMContentLoaded', () => {
     mostrarRecordatorios();
     programarAlarmas();
-
     document.getElementById('btn-activar-alarma')?.addEventListener('click', () => {
         activarAlarma("¡Esta es una prueba de la alarma!");
     });
