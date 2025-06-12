@@ -5,21 +5,61 @@ if ("Notification" in window && Notification.permission !== "granted") {
     });
 }
 
-// Manejo de audio en móviles: desbloquear audio con interacción real
+// --- SONIDO INMEDIATO AL PULSAR "ACTIVAR SONIDOS" ---
 let audioHabilitado = false;
 const btnEnableSound = document.getElementById('btn-enable-sound');
 btnEnableSound.addEventListener('click', function() {
     const audio = new Audio('./sonidos/ascent.mp3');
+    audio.loop = true;
     audio.play().then(() => {
         audioHabilitado = true;
         document.body.setAttribute('data-audio-enabled', 'true');
         btnEnableSound.remove();
-        alert('¡Sonido activado! Ahora las alarmas sonarán.');
+        mostrarPanelAlarma(audio, '¡Sonido activado! Ahora las alarmas sonarán.');
     }).catch((e) => {
         alert('No se pudo activar el sonido. Intenta de nuevo.');
         console.error(e);
     });
 });
+
+function mostrarPanelAlarma(audioElement, mensaje) {
+    const alarmPanel = document.createElement('div');
+    alarmPanel.className = 'alarm-panel';
+    alarmPanel.innerHTML = `
+        <div class="alarm-content">
+            <p><i class="fas fa-bell"></i> ${mensaje}</p>
+            <div class="alarm-actions">
+                <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
+                <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(alarmPanel);
+
+    const stopAlarm = () => {
+        if (audioElement) {
+            if (typeof audioElement.pause === 'function') {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            } else if (typeof audioElement.stop === 'function') {
+                audioElement.stop();
+            }
+        }
+        alarmPanel.remove();
+    };
+
+    document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
+    document.getElementById('snooze-alarm').addEventListener('click', () => {
+        stopAlarm();
+        setTimeout(() => {
+            // Al posponer, vuelve a mostrar el panel y sonido
+            const newAudio = new Audio('./sonidos/ascent.mp3');
+            newAudio.loop = true;
+            newAudio.play();
+            mostrarPanelAlarma(newAudio, mensaje);
+        }, 300000); // 5 minutos
+    });
+}
 
 // Ajustes para móviles (safe-area)
 function adjustForMobile() {
@@ -31,7 +71,7 @@ function adjustForMobile() {
 window.addEventListener('load', adjustForMobile);
 window.addEventListener('resize', adjustForMobile);
 
-// Función de alarma: solo suena si audioHabilitado = true y el usuario ya tocó el botón
+// --- FUNCION DE ALARMA (para recordatorios y prueba) ---
 function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
     if ("Notification" in window && Notification.permission === "granted") {
         new Notification("MediTrack - Recordatorio", { 
@@ -65,39 +105,10 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
         }
     });
 
-    const alarmPanel = document.createElement('div');
-    alarmPanel.className = 'alarm-panel';
-    alarmPanel.innerHTML = `
-        <div class="alarm-content">
-            <p><i class="fas fa-bell"></i> ${mensaje}</p>
-            <div class="alarm-actions">
-                <button id="stop-alarm" class="btn btn-danger"><i class="fas fa-stop"></i> Detener</button>
-                <button id="snooze-alarm" class="btn btn-primary"><i class="fas fa-clock"></i> Posponer 5 min</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(alarmPanel);
-
-    const stopAlarm = () => {
-        if (audioElement) {
-            if (typeof audioElement.pause === 'function') {
-                audioElement.pause();
-                audioElement.currentTime = 0;
-            } else if (typeof audioElement.stop === 'function') {
-                audioElement.stop();
-            }
-        }
-        alarmPanel.remove();
-    };
-
-    document.getElementById('stop-alarm').addEventListener('click', stopAlarm);
-    document.getElementById('snooze-alarm').addEventListener('click', () => {
-        stopAlarm();
-        setTimeout(() => activarAlarma(mensaje), 300000);
-    });
+    mostrarPanelAlarma(audioElement, mensaje);
 }
 
-// Gestión de recordatorios
+// --- RECORDATORIOS ---
 const listaRecordatorios = document.getElementById("lista-recordatorios");
 const formRecordatorio = document.getElementById("form-recordatorio");
 let recordatorios = JSON.parse(localStorage.getItem("recordatorios")) || [];
@@ -144,7 +155,7 @@ function programarAlarmas() {
     });
 }
 
-// Eventos
+// --- EVENTOS ---
 formRecordatorio.addEventListener('submit', e => {
     e.preventDefault();
     const medicamento = document.getElementById("medicamento").value.trim();
@@ -176,8 +187,9 @@ document.getElementById('btn-activar-alarma').addEventListener('click', () => {
     }
 });
 
-// Inicialización
+// --- INICIALIZACION ---
 document.addEventListener('DOMContentLoaded', () => {
     mostrarRecordatorios();
     programarAlarmas();
+    adjustForMobile();
 });
