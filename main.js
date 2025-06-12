@@ -112,6 +112,15 @@ const listaRecordatorios = document.getElementById("lista-recordatorios");
 const formRecordatorio = document.getElementById("form-recordatorio");
 let recordatorios = JSON.parse(localStorage.getItem("recordatorios")) || [];
 
+// NUEVO: Array para almacenar los IDs de los timeouts de las alarmas
+let alarmTimeouts = [];
+
+// NUEVO: Función para limpiar los timeouts existentes antes de programar nuevas alarmas
+function limpiarAlarmas() {
+    alarmTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    alarmTimeouts = [];
+}
+
 function mostrarRecordatorios() {
     listaRecordatorios.innerHTML = recordatorios.map((rec, idx) => `
         <li class="recordatorio-item">
@@ -131,6 +140,9 @@ function mostrarRecordatorios() {
 }
 
 function programarAlarmas() {
+    // Limpiar alarmas antes de programar nuevas
+    limpiarAlarmas();
+
     recordatorios.forEach(rec => {
         const ahora = new Date();
         const [horas, minutos] = rec.hora.split(':').map(Number);
@@ -145,7 +157,9 @@ function programarAlarmas() {
         let msRestantes = horaAlarma - ahora;
         if (msRestantes < 0) msRestantes += 86400000;
 
-        setTimeout(() => activarAlarma(`¡Toma tu ${rec.medicamento}!`), msRestantes);
+        // Guardar el ID del timeout para poder limpiarlo después si es necesario
+        const timeoutId = setTimeout(() => activarAlarma(`¡Toma tu ${rec.medicamento}!`), msRestantes);
+        alarmTimeouts.push(timeoutId);
     });
 }
 
@@ -170,6 +184,7 @@ listaRecordatorios.addEventListener('click', e => {
         recordatorios.splice(idx, 1);
         localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
         mostrarRecordatorios();
+        programarAlarmas(); // Reprogramar alarmas tras eliminar
     }
 });
 
