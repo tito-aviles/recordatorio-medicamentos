@@ -8,8 +8,10 @@ if ("Notification" in window && Notification.permission !== "granted") {
 // --- SONIDO INMEDIATO AL PULSAR "ACTIVAR SONIDOS" ---
 let audioHabilitado = false;
 const btnEnableSound = document.getElementById('btn-enable-sound');
+const ALARMA_SONIDO_URL = 'https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa5c7f.mp3';
+
 btnEnableSound.addEventListener('click', function() {
-    const audio = new Audio('./sonidos/ascent.mp3');
+    const audio = new Audio(ALARMA_SONIDO_URL);
     audio.loop = true;
     audio.play().then(() => {
         audioHabilitado = true;
@@ -53,7 +55,7 @@ function mostrarPanelAlarma(audioElement, mensaje) {
         stopAlarm();
         setTimeout(() => {
             // Al posponer, vuelve a mostrar el panel y sonido
-            const newAudio = new Audio('./sonidos/ascent.mp3');
+            const newAudio = new Audio(ALARMA_SONIDO_URL);
             newAudio.loop = true;
             newAudio.play();
             mostrarPanelAlarma(newAudio, mensaje);
@@ -85,7 +87,7 @@ function activarAlarma(mensaje = "¡Es hora de tomar tu medicamento!") {
         return;
     }
 
-    let audioElement = new Audio('./sonidos/ascent.mp3');
+    let audioElement = new Audio(ALARMA_SONIDO_URL);
     audioElement.loop = true;
     audioElement.play().catch(e => {
         // fallback beep
